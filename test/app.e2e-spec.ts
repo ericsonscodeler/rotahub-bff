@@ -9,6 +9,8 @@ describe('Orders (e2e)', () => {
   beforeAll(async () => {
     process.env.ORDERS_SERVICE_URL =
       process.env.ORDERS_SERVICE_URL ?? 'http://localhost:8081';
+    process.env.TRACKING_SERVICE_URL =
+      process.env.TRACKING_SERVICE_URL ?? 'http://localhost:8082';
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -26,22 +28,44 @@ describe('Orders (e2e)', () => {
     await app.close();
   });
 
-  it('creates and fetches an order through the BFF', async () => {
-    const createResponse = await request(app.getHttpServer())
+  function createOrder() {
+    return request(app.getHttpServer())
       .post('/api/orders')
       .send({
         sender: { name: 'Loja Central', address: 'Av. Paulista, 1000' },
         recipient: { name: 'Joao Silva', address: 'Rua das Flores, 45' },
-      })
-      .expect(201);
+      });
+  }
 
-    const orderId = createResponse.body.id;
+  it('creates an order and initializes tracking through the BFF', async () => {
+    const response = await createOrder().expect(201);
 
-    const getResponse = await request(app.getHttpServer())
+    expect(response.body.status).toBe('CREATED');
+    expect(response.body.tracking).toMatchObject({ status: 'AWAITING_PICKUP' });
+  });
+
+  it('combines order and tracking on GET', async () => {
+    const created = await createOrder();
+    const orderId = created.body.id;
+
+    const response = await request(app.getHttpServer())
       .get(`/api/orders/${orderId}`)
       .expect(200);
 
-    expect(getResponse.body.id).toBe(orderId);
+    expect(response.body.id).toBe(orderId);
+    expect(response.body.tracking).toMatchObject({ status: 'AWAITING_PICKUP' });
+  });
+
+  it('adds a tracking event through the BFF', async () => {
+    const created = await createOrder();
+    const orderId = created.body.id;
+
+    const response = await request(app.getHttpServer())
+      .post(`/api/orders/${orderId}/tracking-events`)
+      .send({ status: 'PICKED_UP', timestamp: new Date().toISOString() })
+      .expect(200);
+
+    expect(response.body.status).toBe('PICKED_UP');
   });
 
   it('returns 404 when order does not exist', () => {

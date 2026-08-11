@@ -1,6 +1,7 @@
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { TrackingsModule } from '../trackings/trackings.module';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
 
@@ -12,6 +13,7 @@ import { OrdersService } from './orders.service';
       }),
       inject: [ConfigService],
     }),
+    TrackingsModule,
   ],
   controllers: [OrdersController],
   providers: [OrdersService],

@@ -3,31 +3,74 @@ import { HttpException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { AxiosError } from 'axios';
 import { of, throwError } from 'rxjs';
+import { TrackingsService } from '../trackings/trackings.service';
 import { OrdersService } from './orders.service';
 
 describe('OrdersService', () => {
   let service: OrdersService;
   let httpService: { post: jest.Mock; get: jest.Mock };
+  let trackingsService: {
+    create: jest.Mock;
+    findByOrderId: jest.Mock;
+    addEvent: jest.Mock;
+  };
 
   beforeEach(async () => {
     httpService = { post: jest.fn(), get: jest.fn() };
+    trackingsService = {
+      create: jest.fn(),
+      findByOrderId: jest.fn(),
+      addEvent: jest.fn(),
+    };
 
     const module = await Test.createTestingModule({
       providers: [
         OrdersService,
         { provide: HttpService, useValue: httpService },
+        { provide: TrackingsService, useValue: trackingsService },
       ],
     }).compile();
 
     service = module.get(OrdersService);
   });
 
-  it('returns the response data on success', async () => {
+  it('creates the order, initializes tracking and returns a combined view', async () => {
+    httpService.post.mockReturnValue(
+      of({ data: { id: '1', status: 'CREATED' } }),
+    );
+    trackingsService.create.mockResolvedValue({ status: 'AWAITING_PICKUP' });
+
+    const result = await service.create({
+      sender: { name: 'A', address: 'X' },
+      recipient: { name: 'B', address: 'Y' },
+    } as never);
+
+    expect(trackingsService.create).toHaveBeenCalledWith('1');
+    expect(result).toEqual({
+      id: '1',
+      status: 'CREATED',
+      tracking: { status: 'AWAITING_PICKUP' },
+    });
+  });
+
+  it('combines order and tracking on findOne', async () => {
     httpService.get.mockReturnValue(of({ data: { id: '1' } }));
+    trackingsService.findByOrderId.mockResolvedValue({ status: 'IN_TRANSIT' });
 
     const result = await service.findOne('1');
 
-    expect(result).toEqual({ id: '1' });
+    expect(result).toEqual({ id: '1', tracking: { status: 'IN_TRANSIT' } });
+  });
+
+  it('returns tracking null when no tracking exists yet for the order', async () => {
+    httpService.get.mockReturnValue(of({ data: { id: '1' } }));
+    trackingsService.findByOrderId.mockRejectedValue(
+      new HttpException('Not Found', 404),
+    );
+
+    const result = await service.findOne('1');
+
+    expect(result).toEqual({ id: '1', tracking: null });
   });
 
   it('rethrows downstream errors as HttpException with the same status and body', async () => {
