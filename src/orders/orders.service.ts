@@ -20,10 +20,32 @@ export class OrdersService {
     return { ...order, tracking };
   }
 
-  async findOne(id: string) {
-    const order = await forwardHttpCall(this.httpService.get(`/orders/${id}`));
+  findOne(id: string) {
+    return this.withTracking(
+      forwardHttpCall(this.httpService.get(`/orders/${id}`)),
+    );
+  }
+
+  findByTrackingCode(trackingCode: string) {
+    return this.withTracking(
+      forwardHttpCall(
+        this.httpService.get(`/orders/by-tracking-code/${trackingCode}`),
+      ),
+    );
+  }
+
+  findAll(query: Record<string, string>) {
+    return forwardHttpCall(this.httpService.get('/orders', { params: query }));
+  }
+
+  addTrackingEvent(id: string, payload: AddTrackingEventDto) {
+    return this.trackingsService.addEvent(id, payload);
+  }
+
+  private async withTracking(orderRequest: Promise<any>) {
+    const order = await orderRequest;
     try {
-      const tracking = await this.trackingsService.findByOrderId(id);
+      const tracking = await this.trackingsService.findByOrderId(order.id);
       return { ...order, tracking };
     } catch (error) {
       if (
@@ -34,13 +56,5 @@ export class OrdersService {
       }
       throw error;
     }
-  }
-
-  findAll(query: Record<string, string>) {
-    return forwardHttpCall(this.httpService.get('/orders', { params: query }));
-  }
-
-  addTrackingEvent(id: string, payload: AddTrackingEventDto) {
-    return this.trackingsService.addEvent(id, payload);
   }
 }

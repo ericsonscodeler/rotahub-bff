@@ -56,6 +56,23 @@ describe('Orders (e2e)', () => {
     expect(response.body.tracking).toMatchObject({ status: 'AWAITING_PICKUP' });
   });
 
+  it('finds an order by tracking code', async () => {
+    const created = await createOrder();
+
+    const response = await request(app.getHttpServer())
+      .get(`/api/orders/by-tracking-code/${created.body.trackingCode}`)
+      .expect(200);
+
+    expect(response.body.id).toBe(created.body.id);
+    expect(response.body.tracking).toMatchObject({ status: 'AWAITING_PICKUP' });
+  });
+
+  it('returns 404 for an unknown tracking code', () => {
+    return request(app.getHttpServer())
+      .get('/api/orders/by-tracking-code/RH-DOESNOTEXIST')
+      .expect(404);
+  });
+
   it('adds a tracking event through the BFF', async () => {
     const created = await createOrder();
     const orderId = created.body.id;

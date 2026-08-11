@@ -21,6 +21,11 @@ export class OrdersController {
     return this.ordersService.create(dto);
   }
 
+  @Get('by-tracking-code/:trackingCode')
+  findByTrackingCode(@Param('trackingCode') trackingCode: string) {
+    return this.ordersService.findByTrackingCode(trackingCode);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.ordersService.findOne(id);
