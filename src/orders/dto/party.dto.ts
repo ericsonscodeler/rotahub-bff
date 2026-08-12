@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 
 export class PartyDto {
   @IsString()
@@ -8,4 +8,7 @@ export class PartyDto {
   @IsString()
   @IsNotEmpty()
   address: string;
+
+  @IsEmail()
+  email: string;
 }

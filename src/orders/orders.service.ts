@@ -1,6 +1,7 @@
 import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { forwardHttpCall } from '../common/forward-http-call';
+import { NotificationsService } from '../notifications/notifications.service';
 import { AddTrackingEventDto } from '../trackings/dto/add-tracking-event.dto';
 import { TrackingsService } from '../trackings/trackings.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -10,6 +11,7 @@ export class OrdersService {
   constructor(
     private readonly httpService: HttpService,
     private readonly trackingsService: TrackingsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(payload: CreateOrderDto) {
@@ -40,6 +42,10 @@ export class OrdersService {
 
   addTrackingEvent(id: string, payload: AddTrackingEventDto) {
     return this.trackingsService.addEvent(id, payload);
+  }
+
+  getNotifications(id: string) {
+    return this.notificationsService.findByOrderId(id);
   }
 
   private async withTracking(orderRequest: Promise<any>) {

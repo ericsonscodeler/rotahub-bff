@@ -3,6 +3,7 @@ import { HttpException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { AxiosError } from 'axios';
 import { of, throwError } from 'rxjs';
+import { NotificationsService } from '../notifications/notifications.service';
 import { TrackingsService } from '../trackings/trackings.service';
 import { OrdersService } from './orders.service';
 
@@ -14,6 +15,7 @@ describe('OrdersService', () => {
     findByOrderId: jest.Mock;
     addEvent: jest.Mock;
   };
+  let notificationsService: { findByOrderId: jest.Mock };
 
   beforeEach(async () => {
     httpService = { post: jest.fn(), get: jest.fn() };
@@ -22,12 +24,14 @@ describe('OrdersService', () => {
       findByOrderId: jest.fn(),
       addEvent: jest.fn(),
     };
+    notificationsService = { findByOrderId: jest.fn() };
 
     const module = await Test.createTestingModule({
       providers: [
         OrdersService,
         { provide: HttpService, useValue: httpService },
         { provide: TrackingsService, useValue: trackingsService },
+        { provide: NotificationsService, useValue: notificationsService },
       ],
     }).compile();
 
@@ -94,5 +98,16 @@ describe('OrdersService', () => {
         error: 'not found',
       });
     }
+  });
+
+  it('delegates notifications lookup to NotificationsService', async () => {
+    notificationsService.findByOrderId.mockResolvedValue([
+      { subject: 'Pedido entregue' },
+    ]);
+
+    const result = await service.getNotifications('1');
+
+    expect(notificationsService.findByOrderId).toHaveBeenCalledWith('1');
+    expect(result).toEqual([{ subject: 'Pedido entregue' }]);
   });
 });

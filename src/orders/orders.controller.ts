@@ -41,4 +41,9 @@ export class OrdersController {
   addTrackingEvent(@Param('id') id: string, @Body() dto: AddTrackingEventDto) {
     return this.ordersService.addTrackingEvent(id, dto);
   }
+
+  @Get(':id/notifications')
+  getNotifications(@Param('id') id: string) {
+    return this.ordersService.getNotifications(id);
+  }
 }

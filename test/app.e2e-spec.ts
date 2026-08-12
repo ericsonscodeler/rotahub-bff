@@ -11,6 +11,8 @@ describe('Orders (e2e)', () => {
       process.env.ORDERS_SERVICE_URL ?? 'http://localhost:8081';
     process.env.TRACKING_SERVICE_URL =
       process.env.TRACKING_SERVICE_URL ?? 'http://localhost:8082';
+    process.env.NOTIFICATION_SERVICE_URL =
+      process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:8084';
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -32,8 +34,16 @@ describe('Orders (e2e)', () => {
     return request(app.getHttpServer())
       .post('/api/orders')
       .send({
-        sender: { name: 'Loja Central', address: 'Av. Paulista, 1000' },
-        recipient: { name: 'Joao Silva', address: 'Rua das Flores, 45' },
+        sender: {
+          name: 'Loja Central',
+          address: 'Av. Paulista, 1000',
+          email: 'loja@example.com',
+        },
+        recipient: {
+          name: 'Joao Silva',
+          address: 'Rua das Flores, 45',
+          email: 'joao@example.com',
+        },
       });
   }
 
